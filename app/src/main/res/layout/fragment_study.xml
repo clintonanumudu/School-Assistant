@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/app_background"
+    tools:context=".StudyFragment" >
+
+    <Button
+        android:id="@+id/flashcard"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="220dp"
+        android:width="390dp"
+        android:height="250dp"
+        android:background="#FFFFFF"
+        android:fontFamily="sans-serif-light"
+        android:paddingHorizontal="10dp"
+        android:text="Which planet is known as the 'Red Planet' in our solar system?"
+        android:textAllCaps="false"
+        android:textColor="#000000"
+        android:textSize="24sp"
+        android:visibility="visible"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/wrong"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="-4dp"
+        android:width="200dp"
+        android:height="100dp"
+        android:text="X"
+        android:visibility="visible"
+        app:layout_constraintStart_toStartOf="@+id/flashcard"
+        app:layout_constraintTop_toBottomOf="@+id/flashcard" />
+
+    <Button
+        android:id="@+id/correct"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="-4dp"
+        android:width="200dp"
+        android:height="100dp"
+        android:text="✓"
+        android:visibility="visible"
+        app:layout_constraintStart_toEndOf="@+id/wrong"
+        app:layout_constraintTop_toBottomOf="@+id/flashcard" />
+
+    <TextView
+        android:id="@+id/streak"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:text="0 correct questions in a row."
+        android:textColor="#07EC40"
+        android:textSize="20sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.1"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:title="Study"
+        android:icon="@drawable/baseline_study_24"
+        android:id="@+id/navigation_study"/>
+    <item
+        android:title="Papers"
+        android:icon="@drawable/baseline_papers_24"
+        android:id="@+id/navigation_papers"/>
+    <item
+        android:title="Scan"
+        android:icon="@drawable/baseline_scan_24"
+        android:id="@+id/navigation_scan"/>
+    <item
+        android:title="Analysis"
+        android:icon="@drawable/baseline_analysis_24"
+        android:id="@+id/navigation_analysis"/>
+</menu>
