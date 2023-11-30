@@ -1,58 +1,67 @@
 package com.example.schoolassistant2;
 
 import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkCapabilities;
+import android.os.AsyncTask;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
 
 import android.os.Environment;
+import android.os.Handler;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link StudyFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
 public class StudyFragment extends Fragment {
-
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
-
-    // TODO: Rename and change types of parameters
     private String mParam1;
     private String mParam2;
-
     private String refreshedAccessToken;
-
-    public StudyFragment() {
-        // Required empty public constructor
-    }
-
+    private String currentQuestion = "";
+    private String groupMode = "new";
+    private int frontOrBack = 0;
+    private int currentSquareNumber = 1;
+    private int groupNumber = -1;
+    private int percentStudied = 0;
+    private View view;
+    private Map<String, String> questionGroup;
+    private List<String> completedQuestions = new ArrayList<>();
+    private List<String> answerResults = new ArrayList<>();
+    private List<Integer> completedGroups = new ArrayList<>();
+    private List<Map<String, String>> questionsAndAnswers;
+    public StudyFragment() {}
     public static StudyFragment newInstance(String param1, String param2) {
         StudyFragment fragment = new StudyFragment();
         Bundle args = new Bundle();
@@ -71,122 +80,80 @@ public class StudyFragment extends Fragment {
         }
     }
 
-    private Map<String, String> questionsAndAnswers;
-    private String currentQuestion = "";
-    private int frontOrBack = 0;
-    private int streak = 0;
-
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        View view = inflater.inflate(R.layout.fragment_study, container, false);
-
-        changeQuestion(view);
-
-        TextView streakText = view.findViewById(R.id.streak);
-
-        Button correctBtn = view.findViewById(R.id.correct);
-
-        Button wrongBtn = view.findViewById(R.id.wrong);
-
-        Button flashcard = view.findViewById(R.id.flashcard);
-
-        correctBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                streak++;
-                streakText.setText(String.valueOf(streak) + " correct questions in a row");
-                String question = (String) flashcard.getText();
-                while (((String)flashcard.getText()).equals(question)) {
-                    changeQuestion(view);
-                }
-            }
-        });
-
-        wrongBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                streak = 0;
-                streakText.setText(String.valueOf(streak) + " correct questions in a row");
-                String question = (String) flashcard.getText();
-                while (((String)flashcard.getText()).equals(question)) {
-                    changeQuestion(view);
-                }
-            }
-        });
-
-        flashcard.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (frontOrBack == 0) {
-                    String question = (String) flashcard.getText();
-                    flashcard.setText(questionsAndAnswers.get(question));
-                    frontOrBack = 1;
-                }
-                else if (frontOrBack == 1) {
-                    flashcard.setText(currentQuestion);
-                    frontOrBack = 0;
-                }
-            }
-        });
-
+        view = inflater.inflate(R.layout.fragment_study, container, false);
+        initializeViews();
         return view;
     }
 
-    private void changeQuestion(View view) {
-
-        questionsAndAnswers = createQADictionary(getContext());
-
-        // Get a list of only the questions
-        List<String> keys = new ArrayList<>(questionsAndAnswers.keySet());
-
-        // Choose a random question from the bunch
-        Random random = new Random();
-        int randomIndex = random.nextInt(keys.size());
-        String randomQuestion = keys.get(randomIndex);
-        
-        // Set the text of the flashcard to the random question
-        Button flashcard = view.findViewById(R.id.flashcard);
-        flashcard.setText(randomQuestion);
-        currentQuestion = randomQuestion;
-        frontOrBack = 0;
+    private void initializeViews() {
+        questionsAndAnswers = createQADictionary();
+        changeGroup();
+        setupButtonListeners();
     }
 
-    private Map<String, String> createQADictionary(Context context) {
-        // Get the external storage directory
-        File externalStorageDir = Environment.getExternalStorageDirectory();
+    private void setupButtonListeners() {
+        Button correctBtn = view.findViewById(R.id.correct);
+        Button wrongBtn = view.findViewById(R.id.wrong);
+        Button flashcard = view.findViewById(R.id.flashcard);
 
-        // Specify the file path
-        String filePath = externalStorageDir + "/Documents/School Assistant/q_and_a.json";
+        correctBtn.setOnClickListener(v -> {
+            updateStreak("correct");
+            changeQuestion();
+        });
 
-        // Read the JSON file and convert it to a JSON object
+        wrongBtn.setOnClickListener(v -> {
+            updateStreak("wrong");
+            changeQuestion();
+        });
+
+        flashcard.setOnClickListener(v -> {
+            if (frontOrBack == 0) {
+                String question = (String) flashcard.getText();
+                flashcard.setText(questionGroup.get(question));
+                frontOrBack = 1;
+            } else if (frontOrBack == 1) {
+                flashcard.setText(currentQuestion);
+                frontOrBack = 0;
+            }
+        });
+    }
+
+    private List<Map<String, String>> createQADictionary() {
+        String filePath = requireContext().getFilesDir() + "/q_and_a.json";
         try {
             String jsonString = readFromFile(filePath);
-            JSONObject jsonObject = new JSONObject(jsonString);
-
-            // Get the "flashcards" array
-            JSONArray flashcardsArray = jsonObject.getJSONArray("flashcards");
-
-            // Create a dictionary/map to store questions and answers
-            Map<String, String> qaDictionary = new HashMap<>();
-
-            // Iterate over each flashcard
-            for (int i = 0; i < flashcardsArray.length(); i++) {
-                JSONObject flashcard = flashcardsArray.getJSONObject(i);
-
-                // Extract question and answer
-                String question = flashcard.getString("question");
-                String answer = flashcard.getString("answer");
-
-                // Store in the dictionary/map
-                qaDictionary.put(question, answer);
+            if (jsonString != null) {
+                JSONObject jsonObject = new JSONObject(jsonString);
+                JSONArray flashcardsArray = jsonObject.getJSONArray("flashcards");
+                List<Map<String, String>> dividedGroups = new ArrayList<>();
+                List<Map.Entry<String, String>> shuffledEntries = new ArrayList<>();
+                for (int i = 0; i < flashcardsArray.length(); i++) {
+                    JSONObject flashcard = flashcardsArray.getJSONObject(i);
+                    String question = flashcard.getString("question");
+                    String answer = flashcard.getString("answer");
+                    shuffledEntries.add(new AbstractMap.SimpleEntry<>(question, answer));
+                }
+                Collections.shuffle(shuffledEntries);
+                int totalEntries = shuffledEntries.size();
+                int startIndex = 0;
+                int endIndex;
+                while (startIndex < totalEntries) {
+                    endIndex = Math.min(startIndex + 5, totalEntries);
+                    List<Map.Entry<String, String>> sublist = shuffledEntries.subList(startIndex, endIndex);
+                    Map<String, String> subgroup = new LinkedHashMap<>();
+                    for (Map.Entry<String, String> entry : sublist) {
+                        subgroup.put(entry.getKey(), entry.getValue());
+                    }
+                    dividedGroups.add(subgroup);
+                    startIndex = endIndex;
+                }
+                return dividedGroups;
             }
-
-            return qaDictionary;
-
         } catch (JSONException e) {
+            e.printStackTrace();
         }
-
         return null;
     }
 
@@ -208,62 +175,118 @@ public class StudyFragment extends Fragment {
         return stringBuilder.toString();
     }
 
-    public void createQAndAFile(Context context) {
-        // JSON content
-        JSONObject jsonObject = new JSONObject();
-        try {
-            jsonObject.put("Question 1", "Answer 1");
-            jsonObject.put("Question 2", "Answer 2");
-            jsonObject.put("Question 3", "Answer 3");
-            jsonObject.put("Question 4", "Answer 4");
-            jsonObject.put("Question 5", "Answer 5");
-        } catch (Exception e) {
-            e.printStackTrace();
+    private void changeQuestion() {
+        List<String> keys = new ArrayList<>(questionGroup.keySet());
+        String randomQuestion = "";
+        while (completedQuestions.contains(randomQuestion) || randomQuestion.equals("")) {
+            if (currentSquareNumber == 6 || (questionGroup.size() < 5 && currentSquareNumber == questionGroup.size() + 1)) {
+                currentSquareNumber = 1;
+                if (!answerResults.contains("wrong")) {
+                    changeGroup();
+                }
+                else {
+                    repeatGroup();
+                }
+                return;
+            }
+            Random random = new Random();
+            int randomIndex = random.nextInt(keys.size());
+            randomQuestion = keys.get(randomIndex);
         }
-
-        // Get the app's private directory
-        File directory = context.getFilesDir();
-
-        // Create the file
-        File file = new File(directory, "q_and_a.json");
-
-        try {
-            // Write the JSON content to the file
-            FileWriter writer = new FileWriter(file);
-            writer.write(jsonObject.toString());
-            writer.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+        Button flashcard = view.findViewById(R.id.flashcard);
+        flashcard.setText(randomQuestion);
+        currentQuestion = randomQuestion;
+        frontOrBack = 0;
+        if (!completedQuestions.contains(randomQuestion)) {
+            completedQuestions.add(randomQuestion);
         }
+        Log.d("CQ", completedGroups.toString());
     }
 
-    public void readAndLogJSONFile(Context context) {
-        // Get the app's private directory
-        File directory = context.getFilesDir();
-
-        // Create the file object
-        File file = new File(directory, "q_and_a.json");
-
-        try {
-            // Read the file content
-            StringBuilder content = new StringBuilder();
-            BufferedReader reader = new BufferedReader(new FileReader(file));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                content.append(line);
+    private void changeGroup() {
+        completedQuestions.clear();
+        LinearLayout linearLayout = view.findViewById(R.id.streak);
+        int childCount = linearLayout.getChildCount();
+        Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < childCount; i++) {
+                    View child = linearLayout.getChildAt(i);
+                    if (child instanceof TextView) {
+                        child.setBackgroundResource(R.drawable.streak_undone);
+                    }
+                }
             }
-            reader.close();
-
-            // Log the JSON content
-            Log.d("File Content", content.toString());
-
-            // If you want to parse the JSON content, you can do it here
-            JSONObject jsonObject = new JSONObject(content.toString());
-            // Now you can work with the JSON data
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
+        }, 100);
+        changePercentStudied();
+        if (groupMode == "new") {
+            while (completedGroups.contains(groupNumber) || groupNumber == -1) {
+                Random random = new Random();
+                int randomIndex = random.nextInt(questionsAndAnswers.size());
+                groupNumber = randomIndex;
+            }
+            completedGroups.add(groupNumber);
+            if (completedGroups.size() > 0) {
+                groupMode = "review";
+            }
         }
+        else if (groupMode == "review") {
+            if (completedGroups.size() == questionsAndAnswers.size() && !answerResults.contains("wrong")) {
+                repeatGroup();
+                percentStudied = 100;
+                TextView studyProgress = view.findViewById(R.id.studyprogress);
+                studyProgress.setText(percentStudied + "% Studied");
+                return;
+            }
+            Random rand = new Random();
+            int randomIndex = rand.nextInt(completedGroups.size());
+            groupNumber = completedGroups.get(randomIndex);
+            groupMode = "new";
+        }
+        questionGroup = questionsAndAnswers.get(groupNumber);
+        changeQuestion();
+    }
+
+    private void repeatGroup() {
+        completedQuestions.clear();
+        LinearLayout linearLayout = view.findViewById(R.id.streak);
+        int childCount = linearLayout.getChildCount();
+        Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < childCount; i++) {
+                    View child = linearLayout.getChildAt(i);
+                    if (child instanceof TextView) {
+                        child.setBackgroundResource(R.drawable.streak_undone);
+                    }
+                }
+            }
+        }, 100);
+        changePercentStudied();
+        changeQuestion();
+    }
+
+    private void updateStreak(String answerIs) {
+        TextView streakSquare = view.findViewById(getResources().getIdentifier("square" + currentSquareNumber, "id", requireActivity().getPackageName()));
+        if (answerIs == "correct") {
+            streakSquare.setBackgroundResource(R.drawable.streak_correct);
+        }
+        else if (answerIs == "wrong") {
+            streakSquare.setBackgroundResource(R.drawable.streak_wrong);
+        }
+        answerResults.add(answerIs);
+        Log.d("answers", answerResults.toString());
+        currentSquareNumber++;
+    }
+
+    private void changePercentStudied() {
+        if (!answerResults.contains("wrong") && (groupMode.equals("new") || completedGroups.size() == 1)) {
+            percentStudied += Math.round(100 / questionsAndAnswers.size());
+            TextView studyProgress = view.findViewById(R.id.studyprogress);
+            studyProgress.setText(percentStudied + "% Studied");
+        }
+        answerResults.clear();
     }
 }

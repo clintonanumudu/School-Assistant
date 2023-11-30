@@ -15,12 +15,11 @@
         android:width="390dp"
         android:height="250dp"
         android:background="#FFFFFF"
-        android:fontFamily="sans-serif-light"
-        android:paddingHorizontal="10dp"
-        android:text="Which planet is known as the 'Red Planet' in our solar system?"
+        android:fontFamily="sans-serif-medium"
+        android:paddingHorizontal="20dp"
         android:textAllCaps="false"
         android:textColor="#000000"
-        android:textSize="24sp"
+        android:textSize="20sp"
         android:visibility="visible"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.498"
@@ -34,6 +33,7 @@
         android:layout_marginStart="-4dp"
         android:width="200dp"
         android:height="100dp"
+        android:backgroundTint="#5A595B"
         android:text="X"
         android:visibility="visible"
         app:layout_constraintStart_toStartOf="@+id/flashcard"
@@ -51,17 +51,66 @@
         app:layout_constraintStart_toEndOf="@+id/wrong"
         app:layout_constraintTop_toBottomOf="@+id/flashcard" />
 
-    <TextView
+    <LinearLayout
         android:id="@+id/streak"
+        android:layout_width="350dp"
+        android:layout_height="30dp"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toTopOf="@+id/flashcard"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.39">
+
+        <TextView
+            android:id="@+id/square1"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:width="70dp"
+            android:background="@drawable/streak_undone" />
+
+        <TextView
+            android:id="@+id/square2"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:width="70dp"
+            android:background="@drawable/streak_undone" />
+
+        <TextView
+            android:id="@+id/square3"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:width="70dp"
+            android:background="@drawable/streak_undone" />
+
+        <TextView
+            android:id="@+id/square4"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:width="70dp"
+            android:background="@drawable/streak_undone" />
+
+        <TextView
+            android:id="@+id/square5"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:width="70dp"
+            android:background="@drawable/streak_undone" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/studyprogress"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:text="0 correct questions in a row."
-        android:textColor="#07EC40"
+        android:fontFamily="sans-serif-medium"
+        android:text="0% Studied"
         android:textSize="20sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.1"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/streak"
+        app:layout_constraintStart_toStartOf="@+id/streak"
         app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
